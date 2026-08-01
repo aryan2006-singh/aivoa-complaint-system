@@ -33,7 +33,9 @@ class Complaint(Base):
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
     attachments: Mapped[list["ComplaintAttachment"]] = relationship(back_populates="complaint")
-    assessment: Mapped["AIAssessment | None"] = relationship(back_populates="complaint", uselist=False)
+    assessment: Mapped["AIAssessment | None"] = relationship(
+        back_populates="complaint", uselist=False, foreign_keys="AIAssessment.complaint_id"
+    )
     history: Mapped[list["ComplaintStatusHistory"]] = relationship(back_populates="complaint")
 
 
