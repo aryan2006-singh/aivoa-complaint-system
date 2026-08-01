@@ -36,15 +36,25 @@ async def test_detects_near_duplicate_by_semantic_similarity() -> None:
         )
         await db.commit()
 
-    state = {
-        "raw_text": "Noticed yellow discoloration on the tablets inside the blister.",
-        "extracted_fields": {
-            "product_name": {"value": "Amoxicillin 500mg", "confidence": 0.9},
-            "batch_lot_number": {"value": "B12345", "confidence": 0.9},
-            "description": {"value": "Noticed yellow discoloration on the tablets inside the blister.", "confidence": 0.9},
-        },
-    }
-    with patch("app.agents.tracing.get_stream_writer", return_value=lambda *_: None):
-        result = await check_duplicates(state)
-    assert result["is_duplicate"] is True
-    assert result["duplicate"]["confidence"] > 0.85
+    try:
+        state = {
+            "raw_text": "Noticed yellow discoloration on the tablets inside the blister.",
+            "extracted_fields": {
+                "product_name": {"value": "Amoxicillin 500mg", "confidence": 0.9},
+                "batch_lot_number": {"value": "B12345", "confidence": 0.9},
+                "description": {"value": "Noticed yellow discoloration on the tablets inside the blister.", "confidence": 0.9},
+            },
+        }
+        with patch("app.agents.tracing.get_stream_writer", return_value=lambda *_: None):
+            result = await check_duplicates(state)
+        assert result["is_duplicate"] is True
+        assert result["duplicate"]["confidence"] > 0.85
+    finally:
+        # Defense in depth: this test writes rows to the shared live database,
+        # so it must clean up after itself regardless of outcome — other tests
+        # (e.g. test_startup.py) run against the same database in the same
+        # session and must not observe leftover rows.
+        async with SessionLocal() as db:
+            await db.execute(delete(AIAssessment))
+            await db.execute(delete(Complaint))
+            await db.commit()

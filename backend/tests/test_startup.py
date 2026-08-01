@@ -38,6 +38,9 @@ async def test_startup_creates_extension_and_tables() -> None:
 
         # Issue a real ORM query. This forces SQLAlchemy to configure all
         # mappers in the registry, surfacing AmbiguousForeignKeysError (or
-        # any other mapper-configuration error) if it's present.
+        # any other mapper-configuration error) if it's present. We only
+        # assert that the query executes and returns a list — the table's
+        # contents are not this test's concern, since other tests legitimately
+        # write rows to the shared live database.
         orm_result = await session.execute(select(Complaint).limit(1))
-        assert orm_result.scalars().all() == []
+        assert isinstance(orm_result.scalars().all(), list)
