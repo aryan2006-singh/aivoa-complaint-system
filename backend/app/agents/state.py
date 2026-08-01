@@ -8,6 +8,7 @@ class ComplaintAgentState(TypedDict, total=False):
     completeness: dict | None
     duplicate: dict | None
     is_duplicate: bool
+    embedding: list[float] | None
     risk: dict | None
     regulatory: dict | None
     root_cause: dict | None
