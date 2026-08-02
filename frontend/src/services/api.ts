@@ -63,6 +63,7 @@ export const api = createApi({
     }),
     getComplaintHistory: builder.query<HistoryEntry[], string>({
       query: (id) => `/complaints/${id}/history`,
+      providesTags: ["Complaint"],
     }),
   }),
 });
