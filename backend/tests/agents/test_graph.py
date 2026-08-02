@@ -6,26 +6,14 @@ from sqlalchemy import delete, select
 from app.agents.graph import build_graph
 from app.db.models import AIAssessment, Complaint
 from app.db.session import SessionLocal
-
-FAKE_EXTRACT = {
-    "product_name": {"value": "Amoxicillin 500mg", "confidence": 0.9},
-    "batch_lot_number": {"value": "B99999", "confidence": 0.9},
-    "customer_name": {"value": "Jane Doe", "confidence": 0.8},
-    "customer_contact": {"value": "jane@example.com", "confidence": 0.8},
-    "date_received": {"value": "2026-08-02", "confidence": 0.8},
-    "description": {"value": "Tablets are cracked in several blister cells.", "confidence": 0.9},
-    "category": {"value": "Quality", "confidence": 0.8},
-    "source": {"value": "email", "confidence": 0.7},
-}
-FAKE_RISK = {"classification": "Major", "rationale": "Cracked tablets may affect dosing."}
-FAKE_REGULATORY = {"reportable": False, "rationale": "No patient harm reported."}
-FAKE_ROOT_CAUSE = {"category": "Machine", "explanation": "Likely tableting press fault."}
-FAKE_CAPA = {"corrective": "Inspect press tooling.", "preventive": "Add in-process cracked-tablet detection."}
-
-
-async def _fake_stream(*_args, **_kwargs):
-    for token in ["Summary ", "of ", "the ", "complaint."]:
-        yield token
+from tests.agents.fixtures import (
+    FAKE_CAPA,
+    FAKE_EXTRACT,
+    FAKE_REGULATORY,
+    FAKE_RISK,
+    FAKE_ROOT_CAUSE,
+)
+from tests.agents.fixtures import fake_stream as _fake_stream
 
 
 @pytest.mark.asyncio
