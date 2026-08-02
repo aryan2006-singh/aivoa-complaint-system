@@ -14,5 +14,7 @@ class ComplaintAgentState(TypedDict, total=False):
     root_cause: dict | None
     capa: dict | None
     summary: str | None
+    complaint_id: str | None
+    duplicate_of: str | None
     trace: Annotated[list[dict], operator.add]
     errors: Annotated[list[str], operator.add]
