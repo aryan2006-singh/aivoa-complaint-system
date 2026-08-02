@@ -7,8 +7,10 @@ from app.db.session import engine
 app = FastAPI(title="AIVOA Complaint Management API")
 
 from app.api.intake import router as intake_router
+from app.api.complaints import router as complaints_router
 
 app.include_router(intake_router)
+app.include_router(complaints_router)
 
 app.add_middleware(
     CORSMiddleware,
