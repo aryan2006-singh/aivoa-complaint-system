@@ -13,5 +13,22 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/complaints
+    ports: ["8000:8000"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports: ["5173:5173"]
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:8000
+    depends_on: ["backend"]
+
 volumes:
   pgdata:

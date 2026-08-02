@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from app.agents.state import ComplaintAgentState
+from app.config import settings
 from app.db.models import AIAssessment, Complaint
 from app.db.session import SessionLocal
 
@@ -20,6 +21,21 @@ async def _next_complaint_number(db) -> str:
 
 def _field(fields: dict, name: str) -> str | None:
     return (fields.get(name) or {}).get("value")
+
+
+def _text(value) -> str | None:
+    """Coerce an LLM-sourced value into plain text for a VARCHAR column.
+
+    The Groq model doesn't always return the exact flat JSON shape the prompt
+    asks for (e.g. `capa_recommendation` sometimes comes back as a nested
+    object instead of a string) -- flatten it defensively rather than let the
+    DB insert crash on a type mismatch.
+    """
+    if value is None or isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        return "; ".join(f"{k}: {v}" for k, v in value.items())
+    return str(value)
 
 
 async def finalize(state: ComplaintAgentState) -> dict:
@@ -64,14 +80,14 @@ async def finalize(state: ComplaintAgentState) -> dict:
                 duplicate_confidence=(state.get("duplicate") or {}).get("confidence"),
                 embedding=state.get("embedding"),
                 risk_classification=(state.get("risk") or {}).get("classification"),
-                risk_rationale=(state.get("risk") or {}).get("rationale"),
+                risk_rationale=_text((state.get("risk") or {}).get("rationale")),
                 regulatory_reportable=(state.get("regulatory") or {}).get("reportable"),
-                regulatory_rationale=(state.get("regulatory") or {}).get("rationale"),
-                root_cause_suggestion=(state.get("root_cause") or {}).get("explanation"),
-                capa_recommendation=(state.get("capa") or {}).get("corrective"),
+                regulatory_rationale=_text((state.get("regulatory") or {}).get("rationale")),
+                root_cause_suggestion=_text((state.get("root_cause") or {}).get("explanation")),
+                capa_recommendation=_text((state.get("capa") or {}).get("corrective")),
                 summary=state.get("summary"),
                 agent_trace=state.get("trace", []),
-                model_used="gemma2-9b-it",
+                model_used=settings.groq_model,
             )
         )
         await db.commit()
