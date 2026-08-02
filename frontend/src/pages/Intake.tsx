@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import AiCopilotStepper from "../features/intake/AiCopilotStepper";
 import { useIntakeStream } from "../features/intake/useIntakeStream";
@@ -10,12 +10,16 @@ export default function Intake() {
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const { start } = useIntakeStream();
-  const { status, resultComplaintId } = useSelector((state: RootState) => state.intake);
+  const { status, resultComplaintId, duplicateOf } = useSelector((state: RootState) => state.intake);
   const navigate = useNavigate();
 
-  if (status === "done" && resultComplaintId) {
-    navigate(`/complaints/${resultComplaintId}`);
-  }
+  useEffect(() => {
+    if (status === "done" && resultComplaintId) {
+      navigate(`/complaints/${resultComplaintId}`);
+    }
+  }, [status, resultComplaintId, navigate]);
+
+  const isDuplicate = status === "done" && !resultComplaintId && duplicateOf;
 
   return (
     <div className="p-6 grid grid-cols-2 gap-6">
@@ -40,6 +44,14 @@ export default function Intake() {
         >
           {status === "streaming" ? "Processing..." : "Submit"}
         </button>
+        {isDuplicate && (
+          <div className="mt-4 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            This complaint appears to be a duplicate of an existing complaint.{" "}
+            <Link to={`/complaints/${duplicateOf}`} className="text-blue-600 underline">
+              view existing complaint
+            </Link>
+          </div>
+        )}
       </div>
       <AiCopilotStepper />
     </div>
