@@ -10,7 +10,7 @@ summary of this complaint and the AI assessment for a human reviewer to skim."""
 async def summarize(state: ComplaintAgentState) -> dict:
     writer = get_stream_writer()
     writer({"step": "summarize", "status": "started"})
-    fields = state["extracted_fields"] or {}
+    fields = state.get("extracted_fields") or {}
     description = (fields.get("description") or {}).get("value") or state["raw_text"]
     context = (
         f"Complaint: {description}\n"

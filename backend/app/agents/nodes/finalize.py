@@ -3,10 +3,13 @@ from datetime import datetime
 
 from langgraph.config import get_stream_writer
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 
 from app.agents.state import ComplaintAgentState
 from app.db.models import AIAssessment, Complaint
 from app.db.session import SessionLocal
+
+MAX_COMPLAINT_NUMBER_ATTEMPTS = 3
 
 
 async def _next_complaint_number(db) -> str:
@@ -21,23 +24,37 @@ def _field(fields: dict, name: str) -> str | None:
 
 async def finalize(state: ComplaintAgentState) -> dict:
     writer = get_stream_writer()
-    fields = state["extracted_fields"] or {}
+    fields = state.get("extracted_fields") or {}
     async with SessionLocal() as db:
-        complaint = Complaint(
-            id=uuid.uuid4(),
-            complaint_number=await _next_complaint_number(db),
-            product_name=_field(fields, "product_name") or "Unknown",
-            batch_lot_number=_field(fields, "batch_lot_number") or "Unknown",
-            customer_name=_field(fields, "customer_name"),
-            customer_contact=_field(fields, "customer_contact"),
-            source=_field(fields, "source") or "manual",
-            description=_field(fields, "description") or state["raw_text"],
-            category=_field(fields, "category"),
-            severity=(state.get("risk") or {}).get("classification"),
-            status="New",
-        )
-        db.add(complaint)
-        await db.flush()
+        # `complaint_number` is unique, and `_next_complaint_number` derives it from
+        # a plain COUNT(*) -- two concurrent intakes can race and read the same
+        # count, so the flush below can raise IntegrityError. This is a minimal
+        # retry (regenerate the number, try again) rather than a DB-sequence-based
+        # solution, consistent with this project's "no Alembic migrations" scope.
+        for attempt in range(1, MAX_COMPLAINT_NUMBER_ATTEMPTS + 1):
+            complaint = Complaint(
+                id=uuid.uuid4(),
+                complaint_number=await _next_complaint_number(db),
+                product_name=_field(fields, "product_name") or "Unknown",
+                batch_lot_number=_field(fields, "batch_lot_number") or "Unknown",
+                customer_name=_field(fields, "customer_name"),
+                customer_contact=_field(fields, "customer_contact"),
+                source=_field(fields, "source") or "manual",
+                description=_field(fields, "description") or state["raw_text"],
+                category=_field(fields, "category"),
+                severity=(state.get("risk") or {}).get("classification"),
+                status="New",
+            )
+            db.add(complaint)
+            try:
+                await db.flush()
+            except IntegrityError:
+                await db.rollback()
+                if attempt == MAX_COMPLAINT_NUMBER_ATTEMPTS:
+                    raise
+                continue
+            else:
+                break
         db.add(
             AIAssessment(
                 complaint_id=complaint.id,
