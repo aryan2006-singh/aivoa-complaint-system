@@ -34,6 +34,23 @@ export default defineConfig({
         // hostname instead of the backend's, so the request never reaches
         // the right service and just hangs.
         changeOrigin: true,
+        // TEMPORARY: proxied requests hang with zero response on the
+        // deployed target and no shell access is available to inspect why.
+        // Logging the proxy's own lifecycle events surfaces in Render's
+        // application logs so the actual failure point is visible. Remove
+        // once diagnosed.
+        configure: (proxy) => {
+          console.log("[proxy] configured, target =", process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8000")
+          proxy.on("error", (err) => {
+            console.error("[proxy] error:", err.message)
+          })
+          proxy.on("proxyReq", (proxyReq, req) => {
+            console.log("[proxy] ->", req.method, req.url, "host header:", proxyReq.getHeader("host"))
+          })
+          proxy.on("proxyRes", (proxyRes, req) => {
+            console.log("[proxy] <-", req.url, proxyRes.statusCode)
+          })
+        },
       },
     },
   },
