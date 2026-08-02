@@ -19,7 +19,14 @@ export default defineConfig({
     // allowlist must be relaxed for the deployed app to respond at all.
     allowedHosts: true,
     proxy: {
-      "/api": process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8000",
+      "/api": {
+        target: process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8000",
+        // Platforms like Render route incoming requests by Host header.
+        // Without changeOrigin, the proxy forwards this frontend's own
+        // hostname instead of the backend's, so the request never reaches
+        // the right service and just hangs.
+        changeOrigin: true,
+      },
     },
   },
   test: {
