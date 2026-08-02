@@ -1,0 +1,50 @@
+databases:
+  - name: aivoa-complaints-db
+    databaseName: complaints
+    plan: free
+    postgresMajorVersion: "16"
+
+services:
+  - name: aivoa-backend
+    type: web
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      # Render's default web-service port is 10000; our Dockerfile's uvicorn
+      # binds to 8000, so tell Render to route traffic there instead.
+      - key: PORT
+        value: "8000"
+      # Not stored in this file -- Render prompts for it (as a secret) when
+      # you apply this blueprint.
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.1-8b-instant
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aivoa-complaints-db
+          property: connectionString
+      - key: DUPLICATE_WINDOW_DAYS
+        value: "90"
+      - key: DUPLICATE_SIM_THRESHOLD
+        value: "0.85"
+      - key: DUPLICATE_POSSIBLE_THRESHOLD
+        value: "0.70"
+
+  - name: aivoa-frontend
+    type: web
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    plan: free
+    envVars:
+      - key: PORT
+        value: "5173"
+      # Set this to the aivoa-backend service's public URL once it's live
+      # (visible on its Render dashboard page), e.g.
+      # https://aivoa-backend-xxxx.onrender.com -- left blank here since the
+      # backend's exact URL isn't known until it's first deployed.
+      - key: VITE_API_PROXY_TARGET
+        sync: false

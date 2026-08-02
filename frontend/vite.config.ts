@@ -12,6 +12,12 @@ export default defineConfig({
     },
   },
   server: {
+    host: true,
+    // Vite's dev server rejects requests whose Host header it doesn't
+    // recognize. Deployed on a host like Render, incoming requests carry a
+    // dynamic *.onrender.com Host header, so the default (localhost-only)
+    // allowlist must be relaxed for the deployed app to respond at all.
+    allowedHosts: true,
     proxy: {
       "/api": process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8000",
     },
