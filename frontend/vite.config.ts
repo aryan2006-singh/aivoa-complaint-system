@@ -18,6 +18,14 @@ export default defineConfig({
     // dynamic *.onrender.com Host header, so the default (localhost-only)
     // allowlist must be relaxed for the deployed app to respond at all.
     allowedHosts: true,
+    // This container has no reason to hot-reload -- the source is baked
+    // into the image at build time, not edited live. Vite's chokidar file
+    // watcher was hitting the container's file-descriptor limit at startup
+    // (EMFILE: too many open files) and crashing the process before it
+    // could even bind to a port; disabling the watcher entirely avoids that
+    // without needing OS-level ulimit changes this deploy target doesn't
+    // expose.
+    watch: null,
     proxy: {
       "/api": {
         target: process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8000",
