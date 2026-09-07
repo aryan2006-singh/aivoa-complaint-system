@@ -59,7 +59,7 @@ docker compose up --build   # starts db (5432), backend (8000), frontend (5173)
 python backend/scripts/seed.py   # seeds 6 demo complaints, incl. a near-duplicate pair
 ```
 
-Then open **http://localhost:5173**. Paste a complaint on `/intake` and watch the AI
+Then open **https://aivoa-frontend-20el.onrender.com**. Paste a complaint on `/intake` and watch the AI
 Copilot stepper run live; submit a complaint that closely resembles the seeded
 `Amoxicillin 500mg` / batch `B10021` pair (yellow-tinted tablets, off smell) to see
 duplicate detection fire in real time.
